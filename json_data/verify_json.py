@@ -12,39 +12,40 @@ url = "http://phages.wustl.edu/starterator/json/"
 output_dir = Path(__file__).parent / "json_data"
 
 # pham_ids.txt written by your "fetch" script
-pham_list_file = Path(__file__).parent / "pham_ids.txt"
+pham_ids_file = Path(__file__).parent / "pham_ids.txt"
 
 # amount of phams to sample
 phams_amount: int | None = 50  # change this as you like
 
 def load_pham_ids() -> list[int]:
-    """
-    Load pham IDs from pham_list_file.
-    """
-    if not pham_list_file.exists():
-        print(f"{pham_list_file} does not exist. Run your fetch script first.")
+
+    """Load pham IDs from pham_ids_file."""
+
+    if not pham_ids_file.exists():
+        print(f"{pham_ids_file} does not exist. Run fetch_pham_ids.py first.")
         return []
 
     ids: list[int] = []
-    for line in pham_list_file.read_text().splitlines():
+    for line in pham_ids_file.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         try:
             ids.append(int(line))
         except ValueError:
-            print(f"WARNING: ignoring invalid line in {pham_list_file}: {line!r}")
+            print(f"WARNING: ignoring invalid line in {pham_ids_file}: {line!r}")
     ids = sorted(set(ids))
-    print(f"Loaded {len(ids)} pham IDs from {pham_list_file}")
+    print(f"Loaded {len(ids)} pham IDs from {pham_ids_file}")
     return ids
 
 
 # get jsons
 
-def get_pham_url(pham_id: int) -> str:
-    """Construct the URL for a given pham ID."""
-    return f"{url.rstrip('/')}/{pham_id}.json"
+def get_pham_url(pham_id: int):
+    """makes URL given pham."""
+    return "http://phages.wustl.edu/starterator/json/" + str(pham_id) + ".json"
 
+# checks to see if json file is local
 
 def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
     """
@@ -55,13 +56,13 @@ def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
     Returns the local Path if successful, else None.
     """
     output_dir.mkdir(exist_ok=True)
-    local_path = output_dir / f"{pham_id}.json"
+    downloaded_json_path = output_dir / str((pham_id) + ".json")
 
-    if local_path.exists() and not force:
+    if downloaded_json_path.exists() and not force:
         return local_path
 
     url = get_pham_url(pham_id)
-    print(f"Downloading {url} ...")
+    print("Downloading" + str(url) + "...")
     try:
         resp = requests.get(url, timeout=15)
     except requests.RequestException as e:
@@ -173,7 +174,7 @@ def main():
             sampled_ids.sort()
             print(
                 f"Sampling {phams_amount} phams out of {len(pham_ids)} "
-                f"from {pham_list_file.name}"
+                f"from {pham_ids_file.name}"
             )
             pham_ids = sampled_ids
         else:
