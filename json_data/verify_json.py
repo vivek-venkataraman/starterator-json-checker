@@ -15,7 +15,9 @@ output_dir = Path(__file__).parent / "json_data"
 pham_ids_file = Path(__file__).parent / "pham_ids.txt"
 
 # amount of phams to sample
-phams_amount: int | None = 50  # change this as you like
+phams_amount: int | None = 500  # change this as you like
+
+chunk_size = 20
 
 def load_pham_ids() -> list[int]:
 
@@ -56,10 +58,10 @@ def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
     Returns the local Path if successful, else None.
     """
     output_dir.mkdir(exist_ok=True)
-    downloaded_json_path = output_dir / str((pham_id) + ".json")
+    downloaded_json_path = output_dir / str(str(pham_id) + ".json")
 
     if downloaded_json_path.exists() and not force:
-        return local_path
+        return downloaded_json_path
 
     url = get_pham_url(pham_id)
     print("Downloading" + str(url) + "...")
@@ -68,6 +70,8 @@ def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
     except requests.RequestException as e:
         print(f"  ERROR: could not download {url}: {e}")
         return None
+
+#200 status is "OK"
 
     if resp.status_code != 200:
         print(f"  ERROR: server returned status {resp.status_code} for {url}")
@@ -79,9 +83,9 @@ def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
         print(f"  ERROR: response from {url} was not valid JSON: {e}")
         return None
 
-    local_path.write_text(resp.text, encoding="utf-8")
-    print(f"  Saved to {local_path}")
-    return local_path
+    downloaded_json_path.write_text(resp.text, encoding="utf-8")
+    print(f"  Saved to {downloaded_json_path}")
+    return downloaded_json_path
 
 
 def load_pham_json(path: Path) -> dict:
@@ -90,7 +94,7 @@ def load_pham_json(path: Path) -> dict:
         return json.load(f)
 
 
-# conservation calculations
+# conservation calculations. Loads one pham into memory at a time.
 
 def recompute_conservation(data: dict) -> dict:
     """
@@ -213,6 +217,13 @@ def main():
                 )
         else:
             print(f"{pham_name or pham_id} ({path.name}): all Conservation values match.")
+
+        # gives update after each chunk is run. Chunk size set by var at the beginning of the code.
+        if total % chunk_size == 0:
+            print(
+                f"\n--- Status: processed {total} / {len(pham_ids)} phams; "
+                f"{bad} with mismatches so far. ---"
+            )
 
     print(f"\nChecked {total} phams; {bad} mismatches.")
 
