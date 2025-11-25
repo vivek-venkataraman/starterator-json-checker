@@ -1,15 +1,23 @@
 from pathlib import Path
 import json
-import random
 
 import requests  # install in your project env: pip install requests
+
+import random
+
+from GUI import (
+    load_pham_ids,
+    load_all_pham_data,
+    update_all_local_jsons,
+    PHAM_IDS_FILE,
+)
 
 
 
 url = "http://phages.wustl.edu/starterator/json/"
 
 # Folder where JSON files are stored locally
-output_dir = Path(__file__).parent / "json_data"
+OUTPUT_DIR = Path(__file__).parent / "json_data"
 
 # pham_ids.txt written by your "fetch" script
 pham_ids_file = Path(__file__).parent / "pham_ids.txt"
@@ -19,26 +27,9 @@ phams_amount: int | None = 500  # change this as you like
 
 chunk_size = 20
 
-def load_pham_ids() -> list[int]:
-
-    """Load pham IDs from pham_ids_file."""
-
-    if not pham_ids_file.exists():
-        print(f"{pham_ids_file} does not exist. Run fetch_pham_ids.py first.")
-        return []
-
-    ids: list[int] = []
-    for line in pham_ids_file.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        try:
-            ids.append(int(line))
-        except ValueError:
-            print(f"WARNING: ignoring invalid line in {pham_ids_file}: {line!r}")
-    ids = sorted(set(ids))
-    print(f"Loaded {len(ids)} pham IDs from {pham_ids_file}")
-    return ids
+# backend toggles that the GUI_frontend will overwrite
+use_network: bool = True        # True = download/cached; False = local-only
+refresh_all: bool = False       # True = redownload selected JSONs before run
 
 
 # get jsons
@@ -53,12 +44,12 @@ def download_pham_json(pham_id: int, force: bool = False) -> Path | None:
     """
     Ensure JSON for this pham is present locally.
     - If it exists and force=False, just return the path.
-    - Otherwise, download it from the server into output_dir.
+    - Otherwise, download it from the server into OUTPUT_DIR.
 
     Returns the local Path if successful, else None.
     """
-    output_dir.mkdir(exist_ok=True)
-    downloaded_json_path = output_dir / str(str(pham_id) + ".json")
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    downloaded_json_path = OUTPUT_DIR / str(str(pham_id) + ".json")
 
     if downloaded_json_path.exists() and not force:
         return downloaded_json_path
@@ -94,7 +85,7 @@ def load_pham_json(path: Path) -> dict:
         return json.load(f)
 
 
-# conservation calculations. Loads one pham into memory at a time.
+# conservation calculations
 
 def recompute_conservation(data: dict) -> dict:
     """
@@ -228,6 +219,7 @@ def main():
     print(f"\nChecked {total} phams; {bad} mismatches.")
 
     print(sampled_ids)
+
 
 
 if __name__ == "__main__":
