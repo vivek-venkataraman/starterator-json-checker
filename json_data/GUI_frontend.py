@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 # Backend + computation modules
 import verify_json
+import adjacent_start_checker
 from GUI import load_pham_ids, update_all_local_jsons
 
 
@@ -80,6 +81,11 @@ class StarteratorMainWindow(QMainWindow):
         # run button
         self.run_button = QPushButton("Run Verification")
         main_layout.addWidget(self.run_button)
+
+        #run for adjacent starts button
+        self.run_adjacent_button = QPushButton("Run Adjacent Start Checker")
+        main_layout.addWidget(self.run_adjacent_button)
+        self.run_adjacent_button.clicked.connect(self.on_run_adjacent_clicked)
 
         # status label
         self.status_label = QLabel("Ready")
@@ -156,6 +162,26 @@ class StarteratorMainWindow(QMainWindow):
             self.status_label.setText("Verification completed.")
         except Exception as e:
             self.status_label.setText(f"Error during verification: {e}")
+
+    #similar to previous method but instead specifically for adjacent checking
+    def on_run_adjacent_clicked(self):
+        settings = self.get_current_settings_from_ui()
+
+        adjacent_start_checker.use_network = settings["use_network"]
+        adjacent_start_checker.refresh_all = settings["refresh_all"]
+        adjacent_start_checker.phams_amount = settings["phams_amount"]
+        adjacent_start_checker.chunk_size = settings["chunk_size"]
+
+        mode = "network" if settings["use_network"] else "local"
+        refresh_text = "with refresh" if settings["refresh_all"] else "no refresh"
+        self.status_label.setText(f"Running adjacent-start checker ({mode}, {refresh_text})...")
+        self.repaint()
+
+        try:
+            adjacent_start_checker.main()
+            self.status_label.setText("Adjacent-start check completed.")
+        except Exception as e:
+            self.status_label.setText(f"Error during adjacent-start check: {e}")
 
 
 def main():
