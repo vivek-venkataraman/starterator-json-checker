@@ -221,11 +221,12 @@ def check_gene_adjacent_rule(gene: dict[str, Any], step: int = 3) -> dict[str, A
             "orientation": orientation,
         }
 
-    if len(containing) > 1 and called != containing[0]:
+    # NEW RULE: called start should be the LAST start in the adjacent cluster
+    if len(containing) > 1 and called != containing[-1]:
         return {
-            "issue": "adjacent_cluster_not_first",
+            "issue": "adjacent_cluster_not_last",
             "called": called,
-            "should_be": containing[0],
+            "should_be": containing[-1],
             "cluster": containing,
             "note": note,
             "orientation": orientation,
